@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-
-import { EditorShell } from "@/components/editor/editor-shell";
+import { ClerkProvider } from "@clerk/nextjs";
+import { dark } from "@clerk/ui/themes";
 
 import "./globals.css";
 
@@ -27,7 +27,27 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <EditorShell>{children}</EditorShell>
+        <ClerkProvider
+          appearance={{
+            theme: dark,
+            variables: {
+              colorPrimary: "var(--accent-primary)",
+              colorBackground: "var(--bg-base)",
+              colorInput: "var(--bg-surface)",
+              colorInputForeground: "var(--text-primary)",
+              colorForeground: "var(--text-primary)",
+              colorMutedForeground: "var(--text-secondary)",
+              colorNeutral: "var(--text-muted)",
+              colorSuccess: "var(--state-success)",
+              colorDanger: "var(--state-error)",
+              borderRadius: "var(--radius)",
+              fontFamily: "var(--font-geist-sans)",
+              fontFamilyButtons: "var(--font-geist-sans)",
+            },
+          }}
+        >
+          {children}
+        </ClerkProvider>
       </body>
     </html>
   );

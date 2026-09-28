@@ -1,11 +1,12 @@
-import { Button } from "@/components/ui/button"
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react"
+import { UserButton } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 type EditorNavbarProps = {
-  isSidebarOpen: boolean
-  onToggleSidebar: () => void
-  projectName?: string
-}
+  isSidebarOpen: boolean;
+  onToggleSidebar: () => void;
+  projectName?: string;
+};
 
 export function EditorNavbar({
   isSidebarOpen,
@@ -45,8 +46,10 @@ export function EditorNavbar({
           <span className="truncate text-sm text-copy-secondary">{projectName}</span>
         </div>
 
-        <div className="flex flex-1 justify-end" aria-hidden="true" />
+        <div className="flex flex-1 items-center justify-end">
+          <UserButton />
+        </div>
       </div>
     </header>
-  )
+  );
 }

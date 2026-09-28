@@ -22,7 +22,8 @@ Requirements:
 - sidebar should float above the editor canvas
 - opening it should not push page content
 - slides in from the left 
-- accepts `projects` title + close button
+- accepts `isOpen` and `onClose` props
+- header with `projects` title + close button
 - shadcn `Tabs`:                                           
   - My Projects
   - Shared
@@ -46,4 +47,4 @@ Do not build actual dialogs yet.
 
 - new vomponents compile without typescript errors
 - no lint errors
-- dialog pattern is
+- dialog pattern is reusable and styled with globals.css tokens.
