@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,134 +15,64 @@ import {
 import { Input } from "@/components/ui/input";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
-import { useProjectDialogs } from "@/components/editor/use-project-dialogs";
-import { AlertTriangle, Plus } from "lucide-react";
-import { useRef, useState } from "react";
+import { useProjectActions } from "@/hooks/use-project-actions";
 
 type Project = {
   id: string;
   name: string;
   owner: boolean;
+  roomId?: string;
 };
 
-const initialProjects: Project[] = [
-  { id: "p-1", name: "Ghost AI Workspace", owner: true },
-  { id: "p-2", name: "Launch Brief", owner: true },
-  { id: "p-3", name: "Design System", owner: false },
-  { id: "p-4", name: "Ops Review", owner: false },
-];
+type EditorShellProps = {
+  initialProjects: Project[];
+  initialSelectedProjectId?: string;
+};
 
-export function EditorShell() {
+export function EditorShell({
+  initialProjects,
+  initialSelectedProjectId,
+}: EditorShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
-  const [selectedProjectId, setSelectedProjectId] = useState(initialProjects[0].id);
-  const createProjectRequestRef = useRef(false);
+  const [selectedProjectId, setSelectedProjectId] = useState(
+    initialSelectedProjectId ?? initialProjects[0]?.id ?? ""
+  );
+
+  useEffect(() => {
+    setProjects(initialProjects);
+    setSelectedProjectId(
+      initialSelectedProjectId ?? initialProjects[0]?.id ?? ""
+    );
+  }, [initialProjects, initialSelectedProjectId]);
+
   const {
     dialog,
     formValue,
     setFormValue,
     currentSlug,
     isSubmitting,
-    beginSubmit,
-    finishSubmit,
     openCreateDialog,
     openRenameDialog,
     openDeleteDialog,
     closeDialog,
-  } = useProjectDialogs();
+    handleSubmit,
+  } = useProjectActions({
+    projects,
+    setProjects,
+    selectedProjectId,
+    setSelectedProjectId,
+  });
 
   const selectedProject =
     projects.find((project) => project.id === selectedProjectId) ?? projects[0] ?? null;
 
   const closeProjectDialog = () => {
-    createProjectRequestRef.current = false;
     closeDialog();
   };
 
   const handleOpenCreateDialog = () => {
-    createProjectRequestRef.current = false;
     openCreateDialog();
-  };
-
-  const createProject = () => {
-    if (createProjectRequestRef.current) {
-      return;
-    }
-
-    const name = formValue.trim();
-    if (!name) {
-      return;
-    }
-
-    createProjectRequestRef.current = true;
-
-    const nextProject: Project = {
-      id: `p-${Date.now()}`,
-      name,
-      owner: true,
-    };
-
-    setProjects((current) => [nextProject, ...current]);
-    setSelectedProjectId(nextProject.id);
-    closeProjectDialog();
-  };
-
-  const renameProject = () => {
-    const name = formValue.trim();
-    if (!dialog.projectId || !name) {
-      return;
-    }
-
-    setProjects((current) =>
-      current.map((project) =>
-        project.id === dialog.projectId ? { ...project, name } : project
-      )
-    );
-
-    if (selectedProjectId === dialog.projectId) {
-      setSelectedProjectId(dialog.projectId);
-    }
-
-    closeProjectDialog();
-  };
-
-  const deleteProject = () => {
-    if (!dialog.projectId) {
-      return;
-    }
-
-    const nextProjects = projects.filter((project) => project.id !== dialog.projectId);
-    setProjects(nextProjects);
-
-    if (selectedProjectId === dialog.projectId) {
-      setSelectedProjectId(nextProjects[0]?.id ?? "");
-    }
-
-    closeProjectDialog();
-  };
-
-  const handleSubmit = () => {
-    if (isSubmitting) {
-      return;
-    }
-
-    beginSubmit();
-
-    try {
-      if (dialog.mode === "create") {
-        createProject();
-      }
-
-      if (dialog.mode === "rename") {
-        renameProject();
-      }
-
-      if (dialog.mode === "delete") {
-        deleteProject();
-      }
-    } finally {
-      finishSubmit();
-    }
   };
 
   return (
@@ -230,14 +163,14 @@ export function EditorShell() {
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
                         event.preventDefault();
-                        handleSubmit();
+                        void handleSubmit();
                       }
                     }}
                   />
                 </div>
 
                 <div className="rounded-xl border border-surface-border bg-subtle p-3 text-sm">
-                  <p className="text-copy-muted">Slug preview</p>
+                  <p className="text-copy-muted">Room ID preview</p>
                   <p className="mt-1 font-medium text-copy-primary">
                     {currentSlug || "project-slug"}
                   </p>
@@ -250,7 +183,7 @@ export function EditorShell() {
                 </Button>
                 <Button
                   type="button"
-                  onClick={handleSubmit}
+                  onClick={() => void handleSubmit()}
                   disabled={!formValue.trim() || isSubmitting}
                 >
                   {isSubmitting ? "Creating..." : "Create project"}
@@ -264,26 +197,28 @@ export function EditorShell() {
               <DialogHeader>
                 <DialogTitle>Rename project</DialogTitle>
                 <DialogDescription>
-                  Current project name: {dialog.projectName ?? "Untitled project"}
+                  Update the project name and keep the workspace in sync.
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-copy-primary">
-                  Project name
-                </label>
-                <Input
-                  autoFocus
-                  value={formValue}
-                  onChange={(event) => setFormValue(event.target.value)}
-                  placeholder="Enter a project name"
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      handleSubmit();
-                    }
-                  }}
-                />
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-copy-primary">
+                    Project name
+                  </label>
+                  <Input
+                    autoFocus
+                    value={formValue}
+                    onChange={(event) => setFormValue(event.target.value)}
+                    placeholder="Project name"
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void handleSubmit();
+                      }
+                    }}
+                  />
+                </div>
               </div>
 
               <DialogFooter>
@@ -292,7 +227,7 @@ export function EditorShell() {
                 </Button>
                 <Button
                   type="button"
-                  onClick={handleSubmit}
+                  onClick={() => void handleSubmit()}
                   disabled={!formValue.trim() || isSubmitting}
                 >
                   {isSubmitting ? "Saving..." : "Save changes"}
@@ -304,20 +239,26 @@ export function EditorShell() {
           {dialog.mode === "delete" && (
             <>
               <DialogHeader>
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="size-5 text-destructive" />
-                  <DialogTitle>Delete project</DialogTitle>
-                </div>
+                <DialogTitle>Delete project</DialogTitle>
                 <DialogDescription>
-                  Are you sure you want to delete {dialog.projectName ?? "this project"}? This action cannot be undone.
+                  This action cannot be undone. The project will be permanently removed.
                 </DialogDescription>
               </DialogHeader>
+
+              <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm text-copy-primary">
+                <p className="font-medium">Delete &ldquo;{dialog.projectName ?? "this project"}&rdquo;?</p>
+              </div>
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={closeProjectDialog}>
                   Cancel
                 </Button>
-                <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => void handleSubmit()}
+                  disabled={isSubmitting}
+                >
                   {isSubmitting ? "Deleting..." : "Delete project"}
                 </Button>
               </DialogFooter>
