@@ -13,8 +13,10 @@ export default clerkMiddleware(async (auth, req) => {
     pathname.startsWith(`/${signUpRoute}/`) ||
     pathname.startsWith("/clerk/") ||
     pathname === "/clerk";
+  const isProjectApiRoute =
+    pathname === "/api/projects" || pathname.startsWith("/api/projects/");
 
-  if (!isPublicRoute) {
+  if (!isPublicRoute && !isProjectApiRoute) {
     await auth.protect();
   }
 });

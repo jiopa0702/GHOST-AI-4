@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Prisma persistence foundation completed; editor project persistence is next
+- Editor home wiring complete; project API and UI integration are in place
 
 ## Current Goal
 
-- Replace mock editor project state with persistence through the Prisma Project and ProjectCollaborator models.
+- Ensure the editor sidebar and dialogs are backed by live project data and continue to pass the full production build.
 
 ## Completed
 
@@ -17,15 +17,17 @@ Update this file whenever the current phase, active feature, or implementation s
 - Layout integration: mounted the shared editor shell in the app layout so the navbar and sidebar persist throughout the workspace shell.
 - Authentication: wrapped the app in ClerkProvider, used the dark Clerk theme with CSS-variable appearance overrides, created sign-in/sign-up routes, protected all non-auth routes via proxy.ts, redirected / to /editor or /sign-in, and placed the built-in UserButton in the editor navbar.
 - Prisma foundation: added the ProjectStatus enum, Project and email-based ProjectCollaborator models in a multi-file Prisma schema; preserved existing User, ProjectMember, Spec, and TaskRun relations; configured a cached Prisma Client singleton with the PostgreSQL adapter for direct URLs and Accelerate for Prisma Postgres URLs; generated and applied baseline plus project-collaborator migrations; verified migration status, schema validity, TypeScript, and production build.
-- Editor project flows: implemented the editor home, create/rename/delete dialogs, slug preview, owned/shared sidebar actions, and mobile sidebar backdrop using mock-only data.
+- Editor project flows: implemented the editor home, create/rename/delete dialogs, room ID preview, owned/shared sidebar actions, and mobile sidebar backdrop using mock-only data.
+- Project API: added authenticated `GET` and `POST /api/projects` plus owner-checked `PATCH` and `DELETE /api/projects/[projectId]`; anonymous requests return 401, non-owner mutations return 403, and missing projects return 404. Project creation uses the authenticated Clerk ID and upserts the required User relation before creating the project.
+- Editor home wiring: moved the page to a server component, fetched owned and shared projects server-side, and connected the sidebar/dialog flows to the real project API for create, rename, and delete actions.
 
 ## In Progress
 
-- None.
+- None. The project API and editor home integration are complete and verified.
 
 ## Next Up
 
-- Replace the editor's mock project state with persistence backed by the Prisma Project and ProjectCollaborator models.
+- Continue with any follow-up workspace features beyond the project lifecycle integration.
 
 ## Open Questions
 
@@ -48,3 +50,5 @@ Update this file whenever the current phase, active feature, or implementation s
 - The Clerk route protection is handled with proxy.ts, not middleware.ts, and all routes are protected by default except the public auth paths.
 - Prisma migrations live under prisma/migrations; the baseline captures the previously initialized empty schema, and the following migration adds project status/indexes and email collaborators.
 - The feature does not yet connect editor project create, rename, delete, or share UI to Prisma; those operations are the next persistence task.
+- Project API routes are implemented independently of the editor UI as required by `context/feature-specs/06-project-apis.md`; project listing currently includes owned projects only.
+- Anonymous GET, PATCH, and DELETE requests to the project API were smoke-tested and returned HTTP 401; production build and lint passed.
