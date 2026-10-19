@@ -1,17 +1,21 @@
 import { UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Share2, Sparkles } from "lucide-react";
 
 type EditorNavbarProps = {
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
   projectName?: string;
+  isAiSidebarOpen?: boolean;
+  onToggleAiSidebar?: () => void;
 };
 
 export function EditorNavbar({
   isSidebarOpen,
   onToggleSidebar,
   projectName = "Workspace",
+  isAiSidebarOpen = true,
+  onToggleAiSidebar,
 }: EditorNavbarProps) {
   return (
     <header className="fixed inset-x-0 top-0 z-30 h-14 border-b border-border/80 bg-base/95 backdrop-blur-sm">
@@ -46,7 +50,25 @@ export function EditorNavbar({
           <span className="truncate text-sm text-copy-secondary">{projectName}</span>
         </div>
 
-        <div className="flex flex-1 items-center justify-end">
+        <div className="flex flex-1 items-center justify-end gap-2">
+          <Button type="button" variant="outline" size="sm" className="hidden gap-2 sm:inline-flex">
+            <Share2 className="size-4" />
+            Share
+          </Button>
+
+          {onToggleAiSidebar && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onToggleAiSidebar}
+              className="gap-2"
+            >
+              <Sparkles className="size-4" />
+              {isAiSidebarOpen ? "Hide AI" : "AI sidebar"}
+            </Button>
+          )}
+
           <UserButton />
         </div>
       </div>

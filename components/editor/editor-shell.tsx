@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,13 +27,18 @@ type Project = {
 type EditorShellProps = {
   initialProjects: Project[];
   initialSelectedProjectId?: string;
+  projectName?: string;
+  isWorkspaceShell?: boolean;
 };
 
 export function EditorShell({
   initialProjects,
   initialSelectedProjectId,
+  projectName,
+  isWorkspaceShell = false,
 }: EditorShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(true);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [selectedProjectId, setSelectedProjectId] = useState(
     initialSelectedProjectId ?? initialProjects[0]?.id ?? ""
@@ -67,6 +72,8 @@ export function EditorShell({
   const selectedProject =
     projects.find((project) => project.id === selectedProjectId) ?? projects[0] ?? null;
 
+  const workspaceProjectName = projectName ?? selectedProject?.name ?? "Ghost AI Workspace";
+
   const closeProjectDialog = () => {
     closeDialog();
   };
@@ -81,7 +88,9 @@ export function EditorShell({
         <EditorNavbar
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={() => setIsSidebarOpen((open) => !open)}
-          projectName={selectedProject?.name ?? "Ghost AI Workspace"}
+          projectName={workspaceProjectName}
+          isAiSidebarOpen={isAiSidebarOpen}
+          onToggleAiSidebar={() => setIsAiSidebarOpen((open) => !open)}
         />
 
         {isSidebarOpen && (
@@ -105,30 +114,68 @@ export function EditorShell({
         />
 
         <main className="pt-14">
-          <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-6 py-10">
-            <div className="w-full max-w-3xl text-left">
-              <p className="mb-2 text-xs uppercase tracking-[0.22em] text-copy-muted">
-                Editor
-              </p>
-              <h1 className="text-3xl font-semibold tracking-tight text-copy-primary sm:text-4xl">
-                Create a project or open an existing one
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-copy-secondary sm:text-base">
-                Start a new architecture workspace, or choose a project from your workspace.
-              </p>
+          {isWorkspaceShell ? (
+            <div className="flex min-h-[calc(100vh-3.5rem)]">
+              <div className="flex-1 bg-[#0b0d10]">
+                <div className="flex h-full items-center justify-center px-6 py-10">
+                  <div className="w-full max-w-2xl rounded-2xl border border-border bg-[#12151b] p-8 text-center shadow-2xl shadow-black/20">
+                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                      <Sparkles className="size-5" />
+                    </div>
+                    <p className="mb-2 text-xs uppercase tracking-[0.22em] text-copy-muted">
+                      Workspace
+                    </p>
+                    <h1 className="text-3xl font-semibold tracking-tight text-copy-primary sm:text-4xl">
+                      {workspaceProjectName}
+                    </h1>
+                    <p className="mt-3 text-sm leading-6 text-copy-secondary">
+                      This room is ready for the next editor canvas and collaboration features.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-              <div className="mt-8 flex items-center gap-3">
-                <Button
-                  type="button"
-                  onClick={handleOpenCreateDialog}
-                  className="inline-flex items-center gap-2"
-                >
-                  <Plus className="size-4" />
-                  New project
-                </Button>
+              {isAiSidebarOpen && (
+                <aside className="hidden w-80 border-l border-border bg-subtle lg:block">
+                  <div className="flex h-full flex-col">
+                    <div className="border-b border-border px-4 py-3">
+                      <p className="text-sm font-medium text-copy-primary">AI assistant</p>
+                    </div>
+                    <div className="flex flex-1 items-center justify-center px-6 text-center">
+                      <p className="text-sm leading-6 text-copy-muted">
+                        AI chat and context panels will appear here soon.
+                      </p>
+                    </div>
+                  </div>
+                </aside>
+              )}
+            </div>
+          ) : (
+            <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-6 py-10">
+              <div className="w-full max-w-3xl text-left">
+                <p className="mb-2 text-xs uppercase tracking-[0.22em] text-copy-muted">
+                  Editor
+                </p>
+                <h1 className="text-3xl font-semibold tracking-tight text-copy-primary sm:text-4xl">
+                  Create a project or open an existing one
+                </h1>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-copy-secondary sm:text-base">
+                  Start a new architecture workspace, or choose a project from your workspace.
+                </p>
+
+                <div className="mt-8 flex items-center gap-3">
+                  <Button
+                    type="button"
+                    onClick={handleOpenCreateDialog}
+                    className="inline-flex items-center gap-2"
+                  >
+                    <Plus className="size-4" />
+                    New project
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </main>
       </div>
 

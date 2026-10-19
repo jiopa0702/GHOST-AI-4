@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Editor home wiring complete; project API and UI integration are in place
+- Share dialog feature is the active implementation target: owner invite/remove controls, collaborator read-only state, and Clerk-enriched metadata for shared project access.
 
 ## Current Goal
 
-- Ensure the editor sidebar and dialogs are backed by live project data and continue to pass the full production build.
+- Implement the share dialog, collaborator APIs, and server-side ownership enforcement described in `context/feature-specs/09-share-dialog.md` while keeping the workspace shell stable.
 
 ## Completed
 
@@ -20,14 +20,16 @@ Update this file whenever the current phase, active feature, or implementation s
 - Editor project flows: implemented the editor home, create/rename/delete dialogs, room ID preview, owned/shared sidebar actions, and mobile sidebar backdrop using mock-only data.
 - Project API: added authenticated `GET` and `POST /api/projects` plus owner-checked `PATCH` and `DELETE /api/projects/[projectId]`; anonymous requests return 401, non-owner mutations return 403, and missing projects return 404. Project creation uses the authenticated Clerk ID and upserts the required User relation before creating the project.
 - Editor home wiring: moved the page to a server component, fetched owned and shared projects server-side, and connected the sidebar/dialog flows to the real project API for create, rename, and delete actions.
+- Workspace shell: added room-scoped route access checks, a dedicated access denied screen, and a project-shell layout with a project navbar, selectable room state, canvas placeholder, and AI sidebar placeholder.
 
 ## In Progress
 
-- None. The project API and editor home integration are complete and verified.
+- Share dialog and collaborator access flows: add the share button and dialog, implement listing/inviting/removing collaborators, and enforce owner-only mutations while keeping collaborator email lookups batched to a small page size instead of fetching every email at once.
+- Validation: confirm the workspace shell and current build remain green under the current Prisma and Next 16 setup.
 
 ## Next Up
 
-- Continue with any follow-up workspace features beyond the project lifecycle integration.
+- Finish the collaborator read-only UI and Clerk email enrichment flow before final build verification and any remaining polish.
 
 ## Open Questions
 
