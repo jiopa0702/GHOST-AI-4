@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -13,8 +14,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { CanvasRoom } from "@/components/editor/canvas-room";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
+import { ShareProjectDialog } from "@/components/editor/share-project-dialog";
 import { useProjectActions } from "@/hooks/use-project-actions";
 
 type Project = {
@@ -37,25 +40,21 @@ export function EditorShell({
   projectName,
   isWorkspaceShell = false,
 }: EditorShellProps) {
+  const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(true);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [selectedProjectId, setSelectedProjectId] = useState(
     initialSelectedProjectId ?? initialProjects[0]?.id ?? ""
   );
-
-  useEffect(() => {
-    setProjects(initialProjects);
-    setSelectedProjectId(
-      initialSelectedProjectId ?? initialProjects[0]?.id ?? ""
-    );
-  }, [initialProjects, initialSelectedProjectId]);
 
   const {
     dialog,
     formValue,
     setFormValue,
     currentSlug,
+    error,
     isSubmitting,
     openCreateDialog,
     openRenameDialog,
@@ -82,25 +81,22 @@ export function EditorShell({
     openCreateDialog();
   };
 
+  const handleSelectProject = (projectId: string) => {
+    setSelectedProjectId(projectId);
+    router.push(`/editor/${projectId}`);
+  };
+
   return (
     <>
-      <div className="min-h-screen bg-background text-copy-primary">
+      <div className="h-dvh overflow-hidden bg-base text-copy-primary">
         <EditorNavbar
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={() => setIsSidebarOpen((open) => !open)}
           projectName={workspaceProjectName}
           isAiSidebarOpen={isAiSidebarOpen}
           onToggleAiSidebar={() => setIsAiSidebarOpen((open) => !open)}
+          onShare={isWorkspaceShell ? () => setIsShareDialogOpen(true) : undefined}
         />
-
-        {isSidebarOpen && (
-          <button
-            type="button"
-            aria-label="Close project sidebar backdrop"
-            onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 z-30 bg-black/40 lg:hidden"
-          />
-        )}
 
         <ProjectSidebar
           isOpen={isSidebarOpen}
@@ -110,45 +106,58 @@ export function EditorShell({
           onRenameProject={openRenameDialog}
           onDeleteProject={openDeleteDialog}
           selectedProjectId={selectedProjectId}
-          onSelectProject={setSelectedProjectId}
+          onSelectProject={handleSelectProject}
         />
 
-        <main className="pt-14">
+        <main
+          className={
+            isWorkspaceShell
+              ? "fixed inset-x-0 bottom-0 top-14 overflow-hidden bg-base"
+              : "fixed inset-x-0 bottom-0 top-14 overflow-y-auto bg-background"
+          }
+        >
           {isWorkspaceShell ? (
-            <div className="flex min-h-[calc(100vh-3.5rem)]">
-              <div className="flex-1 bg-[#0b0d10]">
-                <div className="flex h-full items-center justify-center px-6 py-10">
-                  <div className="w-full max-w-2xl rounded-2xl border border-border bg-[#12151b] p-8 text-center shadow-2xl shadow-black/20">
-                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                      <Sparkles className="size-5" />
-                    </div>
-                    <p className="mb-2 text-xs uppercase tracking-[0.22em] text-copy-muted">
-                      Workspace
-                    </p>
-                    <h1 className="text-3xl font-semibold tracking-tight text-copy-primary sm:text-4xl">
+            <div className="absolute inset-0 min-h-0 w-full">
+              {selectedProject ? (
+                <CanvasRoom roomId={selectedProject.id} />
+              ) : (
+                <div className="flex h-full items-center justify-center px-6 text-center">
+                  <div>
+                    <Sparkles className="mx-auto size-6 text-ai-text" />
+                    <h1 className="mt-4 text-xl font-semibold text-copy-primary">
                       {workspaceProjectName}
                     </h1>
-                    <p className="mt-3 text-sm leading-6 text-copy-secondary">
-                      This room is ready for the next editor canvas and collaboration features.
+                    <p className="mt-2 text-sm text-copy-muted">
+                      Create a project to start designing on the canvas.
                     </p>
                   </div>
                 </div>
-              </div>
-
-              {isAiSidebarOpen && (
-                <aside className="hidden w-80 border-l border-border bg-subtle lg:block">
-                  <div className="flex h-full flex-col">
-                    <div className="border-b border-border px-4 py-3">
-                      <p className="text-sm font-medium text-copy-primary">AI assistant</p>
-                    </div>
-                    <div className="flex flex-1 items-center justify-center px-6 text-center">
-                      <p className="text-sm leading-6 text-copy-muted">
-                        AI chat and context panels will appear here soon.
-                      </p>
-                    </div>
-                  </div>
-                </aside>
               )}
+
+              <aside
+                aria-label="AI assistant"
+                aria-hidden={!isAiSidebarOpen}
+                inert={!isAiSidebarOpen}
+                className={`fixed right-0 top-14 z-40 h-[calc(100dvh-3.5rem)] w-80 max-w-[calc(100vw-1rem)] border-l border-border/70 bg-surface/90 shadow-2xl shadow-black/20 backdrop-blur-sm transition-transform duration-200 ease-out ${
+                  isAiSidebarOpen ? "" : "pointer-events-none"
+                }`}
+                style={{
+                  transform: isAiSidebarOpen
+                    ? "translateX(0)"
+                    : "translateX(calc(100% + 2px))",
+                }}
+              >
+                <div className="flex h-full flex-col">
+                  <div className="border-b border-border px-4 py-3">
+                    <p className="text-sm font-medium text-copy-primary">AI assistant</p>
+                  </div>
+                  <div className="flex flex-1 items-center justify-center px-6 text-center">
+                    <p className="text-sm leading-6 text-copy-muted">
+                      AI chat and context panels will appear here soon.
+                    </p>
+                  </div>
+                </div>
+              </aside>
             </div>
           ) : (
             <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-6 py-10">
@@ -224,6 +233,8 @@ export function EditorShell({
                 </div>
               </div>
 
+              {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={closeProjectDialog}>
                   Cancel
@@ -268,6 +279,8 @@ export function EditorShell({
                 </div>
               </div>
 
+              {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={closeProjectDialog}>
                   Cancel
@@ -296,6 +309,8 @@ export function EditorShell({
                 <p className="font-medium">Delete &ldquo;{dialog.projectName ?? "this project"}&rdquo;?</p>
               </div>
 
+              {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={closeProjectDialog}>
                   Cancel
@@ -313,6 +328,14 @@ export function EditorShell({
           )}
         </DialogContent>
       </Dialog>
+
+      {isWorkspaceShell && selectedProject && (
+        <ShareProjectDialog
+          open={isShareDialogOpen}
+          onOpenChange={setIsShareDialogOpen}
+          projectId={selectedProject.id}
+        />
+      )}
     </>
   );
 }

@@ -25,14 +25,13 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const buildRoomPreview = (value: string) => {
-  const base = slugify(value);
+const buildRoomPreview = (value: string, suffix: string) => {
+  const base = slugify(value).slice(0, 100).replace(/-+$/g, "");
   if (!base) {
-    return "project-slug";
+    return `project-${suffix}`;
   }
 
-  const hash = Array.from(base).reduce((total, char) => total + char.charCodeAt(0), 0);
-  return `${base}-${hash.toString(36).slice(0, 4)}`;
+  return `${base}-${suffix}`;
 };
 
 export function useProjectActions({
@@ -50,35 +49,45 @@ export function useProjectActions({
   const [dialog, setDialog] = useState<ProjectDialogState>({ mode: null });
   const [formValue, setFormValue] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [roomIdSuffix, setRoomIdSuffix] = useState("");
 
   const openCreateDialog = useCallback(() => {
     setDialog({ mode: "create" });
     setFormValue("");
     setIsSubmitting(false);
+    setError(null);
+    setRoomIdSuffix(crypto.randomUUID().replace(/-/g, "").slice(0, 8));
   }, []);
 
   const openRenameDialog = useCallback((project: { id: string; name: string }) => {
     setDialog({ mode: "rename", projectId: project.id, projectName: project.name });
     setFormValue(project.name);
     setIsSubmitting(false);
+    setError(null);
   }, []);
 
   const openDeleteDialog = useCallback((project: { id: string; name: string }) => {
     setDialog({ mode: "delete", projectId: project.id, projectName: project.name });
     setFormValue("");
     setIsSubmitting(false);
+    setError(null);
   }, []);
 
   const closeDialog = useCallback(() => {
     setDialog({ mode: null });
     setFormValue("");
     setIsSubmitting(false);
+    setError(null);
   }, []);
 
   const beginSubmit = useCallback(() => setIsSubmitting(true), []);
   const finishSubmit = useCallback(() => setIsSubmitting(false), []);
 
-  const currentSlug = useMemo(() => buildRoomPreview(formValue), [formValue]);
+  const currentSlug = useMemo(
+    () => buildRoomPreview(formValue, roomIdSuffix || "project"),
+    [formValue, roomIdSuffix]
+  );
 
   const createProject = useCallback(async () => {
     const name = formValue.trim();
@@ -89,7 +98,7 @@ export function useProjectActions({
     const response = await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, id: currentSlug }),
     });
 
     if (!response.ok) {
@@ -110,9 +119,9 @@ export function useProjectActions({
 
     setProjects((current) => [nextProject, ...current]);
     setSelectedProjectId(project.id);
-    router.push(`/editor?project=${project.id}`);
+    router.push(`/editor/${project.id}`);
     closeDialog();
-  }, [closeDialog, formValue, router, setProjects, setSelectedProjectId]);
+  }, [closeDialog, currentSlug, formValue, router, setProjects, setSelectedProjectId]);
 
   const renameProject = useCallback(async () => {
     const name = formValue.trim();
@@ -177,7 +186,7 @@ export function useProjectActions({
       setSelectedProjectId(nextProjectId);
 
       if (nextProjectId) {
-        router.push(`/editor?project=${nextProjectId}`);
+        router.push(`/editor/${nextProjectId}`);
       } else {
         router.push("/editor");
       }
@@ -192,6 +201,7 @@ export function useProjectActions({
       return;
     }
 
+    setError(null);
     beginSubmit();
 
     try {
@@ -206,6 +216,10 @@ export function useProjectActions({
       if (dialog.mode === "delete") {
         await deleteProject();
       }
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error ? submitError.message : "Unable to complete this action."
+      );
     } finally {
       finishSubmit();
     }
@@ -216,6 +230,7 @@ export function useProjectActions({
     formValue,
     setFormValue,
     currentSlug,
+    error,
     isSubmitting,
     beginSubmit,
     finishSubmit,

@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Share dialog feature is the active implementation target: owner invite/remove controls, collaborator read-only state, and Clerk-enriched metadata for shared project access.
+- Collaborative canvas usability: full-bleed canvas presentation, overlay sidebars, and reliable shape drops (verified).
 
 ## Current Goal
 
-- Implement the share dialog, collaborator APIs, and server-side ownership enforcement described in `context/feature-specs/09-share-dialog.md` while keeping the workspace shell stable.
+- Keep the visual and interaction issues documented in `context/current-issues.md` resolved while continuing canvas feature work.
 
 ## Completed
 
@@ -21,15 +21,16 @@ Update this file whenever the current phase, active feature, or implementation s
 - Project API: added authenticated `GET` and `POST /api/projects` plus owner-checked `PATCH` and `DELETE /api/projects/[projectId]`; anonymous requests return 401, non-owner mutations return 403, and missing projects return 404. Project creation uses the authenticated Clerk ID and upserts the required User relation before creating the project.
 - Editor home wiring: moved the page to a server component, fetched owned and shared projects server-side, and connected the sidebar/dialog flows to the real project API for create, rename, and delete actions.
 - Workspace shell: added room-scoped route access checks, a dedicated access denied screen, and a project-shell layout with a project navbar, selectable room state, canvas placeholder, and AI sidebar placeholder.
+- Canvas visual review: made the workspace canvas full-bleed and consistent with the base theme token, retained the dotted pattern using a theme border token, removed canvas/node elevation styling, converted the AI sidebar to an overlay, and moved the closed project sidebar fully beyond the viewport while disabling hidden interactions. Browser checks confirmed both sidebars move fully off-screen, shape drops create nodes at the expected canvas position, and no test node remains. Documented findings and resolutions in `context/current-issues.md`.
+- Canvas validation: focused ESLint, TypeScript, and the production build passed.
 
 ## In Progress
 
-- Share dialog and collaborator access flows: add the share button and dialog, implement listing/inviting/removing collaborators, and enforce owner-only mutations while keeping collaborator email lookups batched to a small page size instead of fetching every email at once.
-- Validation: confirm the workspace shell and current build remain green under the current Prisma and Next 16 setup.
+- None. The full-bleed canvas, overlay sidebar, and shape-drop work is implemented and verified.
 
 ## Next Up
 
-- Finish the collaborator read-only UI and Clerk email enrichment flow before final build verification and any remaining polish.
+- Continue canvas features after full-bleed layout, sidebar overlays, and node dropping are verified.
 
 ## Open Questions
 

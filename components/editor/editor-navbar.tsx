@@ -1,6 +1,16 @@
-import { UserButton } from "@clerk/nextjs";
+"use client";
+
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { PanelLeftClose, PanelLeftOpen, Share2, Sparkles } from "lucide-react";
+
+const ClientUserButton = dynamic(
+  () => import("@clerk/nextjs").then(({ UserButton }) => UserButton),
+  {
+    ssr: false,
+    loading: () => <span aria-hidden="true" className="size-8 rounded-full bg-subtle" />,
+  }
+);
 
 type EditorNavbarProps = {
   isSidebarOpen: boolean;
@@ -8,6 +18,7 @@ type EditorNavbarProps = {
   projectName?: string;
   isAiSidebarOpen?: boolean;
   onToggleAiSidebar?: () => void;
+  onShare?: () => void;
 };
 
 export function EditorNavbar({
@@ -16,6 +27,7 @@ export function EditorNavbar({
   projectName = "Workspace",
   isAiSidebarOpen = true,
   onToggleAiSidebar,
+  onShare,
 }: EditorNavbarProps) {
   return (
     <header className="fixed inset-x-0 top-0 z-30 h-14 border-b border-border/80 bg-base/95 backdrop-blur-sm">
@@ -51,7 +63,14 @@ export function EditorNavbar({
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-2">
-          <Button type="button" variant="outline" size="sm" className="hidden gap-2 sm:inline-flex">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onShare}
+            disabled={!onShare}
+            className="gap-2"
+          >
             <Share2 className="size-4" />
             Share
           </Button>
@@ -69,7 +88,7 @@ export function EditorNavbar({
             </Button>
           )}
 
-          <UserButton />
+          <ClientUserButton />
         </div>
       </div>
     </header>

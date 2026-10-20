@@ -1,5 +1,6 @@
 import { getApiUserId } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { getEditorProjectsForUser } from "@/lib/project-data";
 
 export const runtime = "nodejs";
 
@@ -9,10 +10,8 @@ export async function GET() {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const projects = await prisma.project.findMany({
-    where: { ownerId: userId },
-    orderBy: { createdAt: "desc" },
-  });
+  const { owned, shared } = await getEditorProjectsForUser(userId);
+  const projects = [...owned, ...shared];
 
   return Response.json({ projects });
 }
@@ -44,16 +43,28 @@ export async function POST(request: Request) {
     return Response.json({ error: "Project name cannot be empty" }, { status: 400 });
   }
 
-  const project = await prisma.$transaction(async (transaction) => {
-    await transaction.user.upsert({
-      where: { clerkId: userId },
-      create: { clerkId: userId },
-      update: {},
-    });
+  const idValue = (body as Record<string, unknown>).id;
+  if (
+    idValue !== undefined &&
+    (typeof idValue !== "string" ||
+      idValue.length > 120 ||
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(idValue))
+  ) {
+    return Response.json({ error: "Project ID must be a valid lowercase slug" }, { status: 400 });
+  }
 
-    return transaction.project.create({
-      data: { name, ownerId: userId },
-    });
+  await prisma.user.upsert({
+    where: { clerkId: userId },
+    create: { clerkId: userId },
+    update: {},
+  });
+
+  const project = await prisma.project.create({
+    data: {
+      ...(typeof idValue === "string" ? { id: idValue } : {}),
+      name,
+      ownerId: userId,
+    },
   });
 
   return Response.json({ project }, { status: 201 });

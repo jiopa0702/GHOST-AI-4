@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
 import { prisma } from "@/lib/prisma";
 
@@ -14,25 +14,50 @@ export async function getCurrentClerkIdentity(): Promise<ClerkIdentity | null> {
     return null;
   }
 
-  const user = await prisma.user.findUnique({
-    where: { clerkId: userId },
-    select: { email: true },
-  });
+  const clerkUser = await currentUser();
 
   return {
     userId,
-    primaryEmail: user?.email ?? null,
+    primaryEmail: clerkUser?.primaryEmailAddress?.emailAddress ?? null,
   };
 }
 
 export async function getProjectAccessForUser(userId: string, projectId: string) {
-  return prisma.project.findFirst({
+  const project = await prisma.project.findFirst({
     where: {
       id: projectId,
       OR: [
         { ownerId: userId },
         { members: { some: { user: { clerkId: userId } } } },
       ],
+    },
+    select: {
+      id: true,
+      name: true,
+      ownerId: true,
+    },
+  });
+
+  if (project) {
+    return project;
+  }
+
+  const clerkUser = await currentUser();
+  if (clerkUser?.id !== userId) {
+    return null;
+  }
+
+  const emails = clerkUser.emailAddresses.map(({ emailAddress }) =>
+    emailAddress.toLowerCase()
+  );
+  if (emails.length === 0) {
+    return null;
+  }
+
+  return prisma.project.findFirst({
+    where: {
+      id: projectId,
+      collaborators: { some: { collaboratorEmail: { in: emails } } },
     },
     select: {
       id: true,

@@ -17,6 +17,7 @@ export default async function EditorPage() {
 
   return (
     <EditorShell
+      key="editor-home"
       initialProjects={initialProjects}
       initialSelectedProjectId={initialSelectedProjectId}
     />

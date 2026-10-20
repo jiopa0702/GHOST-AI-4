@@ -31,6 +31,7 @@ export default async function EditorRoomPage({ params }: EditorRoomPageProps) {
 
   return (
     <EditorShell
+      key={roomId}
       initialProjects={initialProjects}
       initialSelectedProjectId={roomId}
       projectName={project.name}
