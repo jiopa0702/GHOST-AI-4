@@ -104,10 +104,15 @@ export function ProjectSidebar({
     <>
       <aside
         className={cn(
-          "fixed left-0 top-14 z-40 h-[calc(100vh-3.5rem)] w-80 border-r border-border bg-surface/95 shadow-2xl shadow-black/20 backdrop-blur-sm transition-transform duration-200 ease-out",
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed left-0 top-14 z-40 h-[calc(100dvh-3.5rem)] w-80 max-w-[calc(100vw-1rem)] border-r border-border bg-surface/95 shadow-2xl shadow-black/20 backdrop-blur-sm transition-transform duration-200 ease-out",
+          isOpen ? "" : "pointer-events-none"
         )}
         aria-label="Project sidebar"
+        aria-hidden={!isOpen}
+        inert={!isOpen}
+        style={{
+          transform: isOpen ? "translateX(0)" : "translateX(calc(-100% - 2px))",
+        }}
       >
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">

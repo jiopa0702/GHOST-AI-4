@@ -24,10 +24,10 @@
 ## Storage Model
 
 - **Database**: metadata, ownership, relationships, and task run records.
-- **Vercel Blob**: generated artifacts — canvas snapshots at `canvas/{projectId}.json` and specs at `specs/{projectId}/{specId}.md`.
+- **Vercel Blob**: generated artifacts — canvas snapshots at `canvas/{projectId}.json` and Markdown specs at `projects/{projectId}/specs/{taskRunId}.md`.
 - Project records, spec records, and task run records belong in PostgreSQL.
-- Canvas content and Markdown output are stored in and retrieved from Vercel Blob.
-- The blob URL is stored in the database (`canvasJsonPath`, `filePath`) as the reference to the artifact.
+- Canvas content and Markdown output are stored in and retrieved from private Vercel Blob storage.
+- The blob URL is stored in the database (`Project.canvasJsonPath`, `ProjectSpec.filePath`) as the reference to the artifact; download handlers never return the URL.
 
 ## Auth and Collaboration Model
 
@@ -57,7 +57,7 @@
 
 - Input: current canvas graph and project context.
 - Execution: durable background task via Trigger.dev.
-- Output: Markdown technical spec saved to the filesystem and linked to the project in the database.
+- Output: Markdown technical spec saved to private Vercel Blob and linked to the project through a `ProjectSpec` metadata row.
 
 ## Invariants
 
