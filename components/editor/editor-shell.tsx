@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Sparkles } from "lucide-react";
 
@@ -14,11 +14,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { CanvasRoom } from "@/components/editor/canvas-room";
+import { CanvasRoom, type SpecCanvasSnapshot } from "@/components/editor/canvas-room";
+import { AiWorkspaceSidebar } from "@/components/editor/ai-workspace-sidebar";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { ShareProjectDialog } from "@/components/editor/share-project-dialog";
 import { useProjectActions } from "@/hooks/use-project-actions";
+import type { CanvasSaveStatus } from "@/hooks/use-canvas-auto-save";
+import type { CanvasTemplate } from "@/components/editor/starter-templates";
 
 type Project = {
   id: string;
@@ -44,6 +47,13 @@ export function EditorShell({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(true);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [hasSpecSnapshot, setHasSpecSnapshot] = useState(false);
+  const [canvasSaveStatus, setCanvasSaveStatus] =
+    useState<CanvasSaveStatus>("idle");
+  const saveCanvasRef = useRef<(() => Promise<void>) | null>(null);
+  const specSnapshotRef = useRef<(() => SpecCanvasSnapshot) | null>(null);
+  const importTemplateRef = useRef<((template: CanvasTemplate) => void) | null>(null);
+  const saveStatusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [selectedProjectId, setSelectedProjectId] = useState(
     initialSelectedProjectId ?? initialProjects[0]?.id ?? ""
@@ -73,6 +83,59 @@ export function EditorShell({
 
   const workspaceProjectName = projectName ?? selectedProject?.name ?? "Ghost AI Workspace";
 
+  const handleCanvasSaveStatusChange = useCallback((status: CanvasSaveStatus) => {
+    if (saveStatusTimeoutRef.current) {
+      clearTimeout(saveStatusTimeoutRef.current);
+      saveStatusTimeoutRef.current = null;
+    }
+
+    setCanvasSaveStatus(status);
+    if (status === "saved" || status === "error") {
+      saveStatusTimeoutRef.current = setTimeout(() => {
+        setCanvasSaveStatus("idle");
+        saveStatusTimeoutRef.current = null;
+      }, 1500);
+    }
+  }, []);
+
+  const handleSaveReady = useCallback(
+    (save: (() => Promise<void>) | null) => {
+      saveCanvasRef.current = save;
+    },
+    []
+  );
+
+  const handleTemplateImportReady = useCallback(
+    (importTemplate: ((template: CanvasTemplate) => void) | null) => {
+      importTemplateRef.current = importTemplate;
+    },
+    []
+  );
+
+  const handleSpecSnapshotReady = useCallback(
+    (getSnapshot: (() => SpecCanvasSnapshot) | null) => {
+      specSnapshotRef.current = getSnapshot;
+      setHasSpecSnapshot(getSnapshot !== null);
+    },
+    []
+  );
+
+  const getSpecCanvasSnapshot = useCallback(
+    () => specSnapshotRef.current?.() ?? null,
+    []
+  );
+
+  const handleTemplateImport = useCallback((template: CanvasTemplate) => {
+    importTemplateRef.current?.(template);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (saveStatusTimeoutRef.current) clearTimeout(saveStatusTimeoutRef.current);
+    },
+    []
+  );
+
   const closeProjectDialog = () => {
     closeDialog();
   };
@@ -96,6 +159,14 @@ export function EditorShell({
           isAiSidebarOpen={isAiSidebarOpen}
           onToggleAiSidebar={() => setIsAiSidebarOpen((open) => !open)}
           onShare={isWorkspaceShell ? () => setIsShareDialogOpen(true) : undefined}
+          saveStatus={isWorkspaceShell ? canvasSaveStatus : undefined}
+          onSaveCanvas={
+            isWorkspaceShell && selectedProject
+              ? () => void saveCanvasRef.current?.()
+              : undefined
+          }
+          onImportTemplate={isWorkspaceShell ? handleTemplateImport : undefined}
+          showUserButton={!isWorkspaceShell}
         />
 
         <ProjectSidebar
@@ -119,7 +190,21 @@ export function EditorShell({
           {isWorkspaceShell ? (
             <div className="absolute inset-0 min-h-0 w-full">
               {selectedProject ? (
-                <CanvasRoom roomId={selectedProject.id} />
+                <CanvasRoom
+                  roomId={selectedProject.id}
+                  onSaveStatusChange={handleCanvasSaveStatusChange}
+                  onSaveReady={handleSaveReady}
+                  onTemplateImportReady={handleTemplateImportReady}
+                  onSpecSnapshotReady={handleSpecSnapshotReady}
+                >
+                  <AiWorkspaceSidebar
+                    isOpen={isAiSidebarOpen}
+                    onClose={() => setIsAiSidebarOpen(false)}
+                    roomId={selectedProject.id}
+                    getCanvasSnapshot={getSpecCanvasSnapshot}
+                    canGenerateSpec={hasSpecSnapshot}
+                  />
+                </CanvasRoom>
               ) : (
                 <div className="flex h-full items-center justify-center px-6 text-center">
                   <div>
@@ -134,30 +219,6 @@ export function EditorShell({
                 </div>
               )}
 
-              <aside
-                aria-label="AI assistant"
-                aria-hidden={!isAiSidebarOpen}
-                inert={!isAiSidebarOpen}
-                className={`fixed right-0 top-14 z-40 h-[calc(100dvh-3.5rem)] w-80 max-w-[calc(100vw-1rem)] border-l border-border/70 bg-surface/90 shadow-2xl shadow-black/20 backdrop-blur-sm transition-transform duration-200 ease-out ${
-                  isAiSidebarOpen ? "" : "pointer-events-none"
-                }`}
-                style={{
-                  transform: isAiSidebarOpen
-                    ? "translateX(0)"
-                    : "translateX(calc(100% + 2px))",
-                }}
-              >
-                <div className="flex h-full flex-col">
-                  <div className="border-b border-border px-4 py-3">
-                    <p className="text-sm font-medium text-copy-primary">AI assistant</p>
-                  </div>
-                  <div className="flex flex-1 items-center justify-center px-6 text-center">
-                    <p className="text-sm leading-6 text-copy-muted">
-                      AI chat and context panels will appear here soon.
-                    </p>
-                  </div>
-                </div>
-              </aside>
             </div>
           ) : (
             <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-6 py-10">

@@ -7,11 +7,13 @@ import type { CanvasNodeData } from "@/types/canvas";
 
 const dragType = "application/x-ghost-canvas-shape";
 
-const shapes: Array<{
+export type ShapePreset = {
   shape: CanvasNodeData["shape"];
   width: number;
   height: number;
-}> = [
+};
+
+export const shapePresets: ShapePreset[] = [
   { shape: "rectangle", width: 180, height: 100 },
   { shape: "diamond", width: 160, height: 140 },
   { shape: "circle", width: 120, height: 120 },
@@ -52,18 +54,35 @@ function ShapeIcon({ shape }: { shape: CanvasNodeData["shape"] }) {
   );
 }
 
-function startShapeDrag(event: DragEvent<HTMLButtonElement>, shape: (typeof shapes)[number]) {
+type ShapePanelProps = {
+  onShapeDragStart: (shape: ShapePreset, x: number, y: number) => void;
+  onShapeDragEnd: () => void;
+};
+
+function startShapeDrag(
+  event: DragEvent<HTMLButtonElement>,
+  shape: ShapePreset,
+  onShapeDragStart: ShapePanelProps["onShapeDragStart"]
+) {
   event.dataTransfer.setData(dragType, JSON.stringify(shape));
   event.dataTransfer.effectAllowed = "copy";
+  onShapeDragStart(shape, event.clientX, event.clientY);
+  const transparentImage = new Image();
+  transparentImage.src =
+    "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+  event.dataTransfer.setDragImage(transparentImage, 0, 0);
 }
 
-export function ShapePanel() {
+export function ShapePanel({
+  onShapeDragStart,
+  onShapeDragEnd,
+}: ShapePanelProps) {
   return (
     <div
       aria-label="Canvas shapes"
       className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-surface/95 p-1.5 shadow-xl backdrop-blur"
     >
-      {shapes.map((shape) => (
+      {shapePresets.map((shape) => (
         <Button
           key={shape.shape}
           type="button"
@@ -72,7 +91,8 @@ export function ShapePanel() {
           draggable
           aria-label={`Drag ${shape.shape}`}
           title={shape.shape}
-          onDragStart={(event) => startShapeDrag(event, shape)}
+          onDragStart={(event) => startShapeDrag(event, shape, onShapeDragStart)}
+          onDragEnd={onShapeDragEnd}
           className="cursor-grab rounded-full text-copy-secondary hover:text-copy-primary active:cursor-grabbing"
         >
           <ShapeIcon shape={shape.shape} />

@@ -7,6 +7,11 @@ export type ClerkIdentity = {
   primaryEmail: string | null;
 };
 
+type ProjectAccessClerkUser = {
+  id: string;
+  emailAddresses: Array<{ emailAddress: string }>;
+};
+
 export async function getCurrentClerkIdentity(): Promise<ClerkIdentity | null> {
   const { userId } = await auth();
 
@@ -22,7 +27,11 @@ export async function getCurrentClerkIdentity(): Promise<ClerkIdentity | null> {
   };
 }
 
-export async function getProjectAccessForUser(userId: string, projectId: string) {
+export async function getProjectAccessForUser(
+  userId: string,
+  projectId: string,
+  clerkUserPromise?: Promise<ProjectAccessClerkUser | null>
+) {
   const project = await prisma.project.findFirst({
     where: {
       id: projectId,
@@ -42,7 +51,9 @@ export async function getProjectAccessForUser(userId: string, projectId: string)
     return project;
   }
 
-  const clerkUser = await currentUser();
+  const clerkUser = clerkUserPromise
+    ? await clerkUserPromise
+    : await currentUser();
   if (clerkUser?.id !== userId) {
     return null;
   }

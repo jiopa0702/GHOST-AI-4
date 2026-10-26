@@ -2,6 +2,7 @@ import { Liveblocks } from "@liveblocks/node";
 
 const globalForLiveblocks = globalThis as typeof globalThis & {
   __ghostLiveblocksClient?: Liveblocks;
+  __ghostLiveblocksRooms?: Map<string, Promise<void>>;
 };
 
 const cursorPalette = [
@@ -37,4 +38,28 @@ export function getLiveblocksClient() {
   }
 
   return globalForLiveblocks.__ghostLiveblocksClient;
+}
+
+export function ensureLiveblocksRoom(roomId: string, ownerId: string) {
+  const rooms = (globalForLiveblocks.__ghostLiveblocksRooms ??= new Map());
+  const existingRoom = rooms.get(roomId);
+  if (existingRoom) return existingRoom;
+
+  const roomPromise = getLiveblocksClient()
+    .getOrCreateRoom(
+      roomId,
+      {
+        defaultAccesses: [],
+        metadata: { projectId: roomId, ownerId },
+      },
+      { signal: AbortSignal.timeout(8_000) }
+    )
+    .then(() => undefined)
+    .catch((error: unknown) => {
+      rooms.delete(roomId);
+      throw error;
+    });
+
+  rooms.set(roomId, roomPromise);
+  return roomPromise;
 }
